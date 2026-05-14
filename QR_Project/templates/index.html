@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lost &amp; Found QR Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-container app-shell">
+    <header class="app-header">
+      <h1 class="app-title">Lost &amp; Found QR Generator</h1>
+      <p class="app-subtitle">Secure QR: only item name and phone appear on the code. Full details are stored in your history.</p>
+    </header>
+
+    <main class="layout" role="main">
+      <div class="column column--form card card-form">
+        <h2 class="card-title">Item details</h2>
+        <form id="record-form" class="form" novalidate>
+          <div class="field">
+            <label class="field-label" for="item_name">Item name</label>
+            <input type="text" id="item_name" name="item_name" autocomplete="off" placeholder="Item name" required>
+          </div>
+          <div class="field">
+            <label class="field-label" for="full_name">Full name</label>
+            <input type="text" id="full_name" name="full_name" autocomplete="name" placeholder="Full name">
+          </div>
+          <div class="field">
+            <label class="field-label" for="address">Address</label>
+            <input type="text" id="address" name="address" autocomplete="street-address" placeholder="Address">
+          </div>
+          <div class="field">
+            <label class="field-label" for="phone">Phone</label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="Phone" required>
+          </div>
+          <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+          <button type="submit" class="btn btn-primary" id="btn-add">Generate QR Code</button>
+          <button type="button" class="btn btn-primary" id="btn-export-json">Export History to JSON</button>
+        </form>
+      </div>
+
+      <div class="column column--preview card card-preview">
+        <h2 class="card-title">Preview &amp; history</h2>
+
+        <section class="preview-panel" aria-labelledby="preview-panel-heading">
+          <h3 id="preview-panel-heading" class="sr-only">QR code preview</h3>
+          <div class="qr-block">
+            <div class="qr-frame" id="qr-frame">
+              <img id="qr-image" class="qr-image" alt="Generated QR code" width="250" height="250" hidden>
+              <p id="qr-placeholder" class="qr-placeholder">QR preview</p>
+            </div>
+            <div class="action-row action-row--qr">
+              <button type="button" class="btn btn-primary" id="btn-download-png">Save QR to PNG</button>
+              <button type="button" class="btn btn-primary" id="btn-print">Print QR Code</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="history-panel" aria-labelledby="history-panel-heading">
+          <h3 id="history-panel-heading" class="card-title">History</h3>
+          <div class="table-wrap">
+            <table class="history-table" id="history-table">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Item</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Phone</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="print-root" class="print-root" aria-hidden="true">
+    <img id="print-qr" class="print-qr" alt="">
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
