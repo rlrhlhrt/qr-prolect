@@ -9,7 +9,7 @@
       "doc.title": "Lost & Found — генератор QR",
       "app.title": "Lost & Found — генератор QR",
       "app.subtitle":
-        "Безопасный QR: в коде только название предмета и телефон. Полные данные хранятся в истории.",
+        "Безопасная метка: внутри только название предмета и телефон. Полные данные хранятся в истории.",
       "settings.theme": "Тема",
       "settings.language": "Язык",
       "settings.aria": "Настройки отображения",
@@ -55,7 +55,7 @@
       "doc.title": "Lost & Found QR Generator",
       "app.title": "Lost & Found QR Generator",
       "app.subtitle":
-        "Secure QR: only item name and phone appear on the code. Full details are stored in your history.",
+        "Secure tag: contains only the item name and phone. Full details are stored in history.",
       "settings.theme": "Theme",
       "settings.language": "Language",
       "settings.aria": "Display settings",
