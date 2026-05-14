@@ -3,6 +3,8 @@
 
   var STORAGE_LANG = "lfqr_lang";
   var STORAGE_THEME = "lfqr_theme";
+  var STORAGE_ACCENT = "lfqr_accent_color";
+  var DEFAULT_ACCENT = "#6366f1";
 
   var I18N = {
     RU: {
@@ -12,6 +14,7 @@
         "Безопасная метка: внутри только название предмета и телефон. Полные данные хранятся в истории.",
       "settings.theme": "Тема",
       "settings.language": "Язык",
+      "settings.accentColor": "Цвет акцента",
       "settings.aria": "Настройки отображения",
       "theme.system": "Системная",
       "theme.dark": "Темная",
@@ -58,6 +61,7 @@
         "Secure tag: contains only the item name and phone. Full details are stored in history.",
       "settings.theme": "Theme",
       "settings.language": "Language",
+      "settings.accentColor": "Accent Color",
       "settings.aria": "Display settings",
       "theme.system": "System",
       "theme.dark": "Dark",
@@ -115,6 +119,7 @@
   var printQr = document.getElementById("print-qr");
   var themeSelect = document.getElementById("theme-select");
   var langSelect = document.getElementById("lang-select");
+  var accentColorPicker = document.getElementById("accent-color-picker");
   var settingsBar = document.querySelector(".settings-bar");
 
   var currentLang = "RU";
@@ -201,6 +206,20 @@
       var key = el.getAttribute("data-i18n-alt");
       if (key) {
         el.setAttribute("alt", t(key));
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-title]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-title");
+      if (key) {
+        el.setAttribute("title", t(key));
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-aria-label]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-aria-label");
+      if (key) {
+        el.setAttribute("aria-label", t(key));
       }
     });
 
@@ -439,6 +458,51 @@
     window.location.href = "/api/export";
   });
 
+  function normalizeAccentHex(str) {
+    if (!str || typeof str !== "string") {
+      return null;
+    }
+    var c = str.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(c)) {
+      return c.toLowerCase();
+    }
+    if (/^[0-9A-Fa-f]{6}$/.test(c)) {
+      return ("#" + c).toLowerCase();
+    }
+    return null;
+  }
+
+  function applyAccentColor(hex) {
+    var v = normalizeAccentHex(hex) || DEFAULT_ACCENT;
+    document.documentElement.style.setProperty("--accent-color", v);
+    if (accentColorPicker) {
+      accentColorPicker.value = v;
+    }
+  }
+
+  function initAccentColorPicker() {
+    if (!accentColorPicker) {
+      return;
+    }
+    var stored = normalizeAccentHex(window.localStorage.getItem(STORAGE_ACCENT));
+    applyAccentColor(stored || DEFAULT_ACCENT);
+
+    function persistAccent() {
+      var v = normalizeAccentHex(accentColorPicker.value);
+      if (v) {
+        window.localStorage.setItem(STORAGE_ACCENT, v);
+      }
+    }
+
+    accentColorPicker.addEventListener("input", function () {
+      applyAccentColor(accentColorPicker.value);
+    });
+    accentColorPicker.addEventListener("change", function () {
+      applyAccentColor(accentColorPicker.value);
+      persistAccent();
+    });
+  }
+
   function onSystemThemeChange() {
     if (getStoredTheme() === "system") {
       applyResolvedTheme();
@@ -470,6 +534,7 @@
   currentLang = getStoredLang();
   themeSelect.value = getStoredTheme();
   langSelect.value = currentLang === "RU" ? "ru" : "en";
+  initAccentColorPicker();
   applyI18n();
   initThemeControls();
   initLangControls();
