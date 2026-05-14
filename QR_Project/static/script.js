@@ -1,26 +1,222 @@
 (function () {
   "use strict";
 
-  const form = document.getElementById("record-form");
-  const itemNameInput = document.getElementById("item_name");
-  const fullNameInput = document.getElementById("full_name");
-  const addressInput = document.getElementById("address");
-  const phoneInput = document.getElementById("phone");
-  const formMessage = document.getElementById("form-message");
-  const btnAdd = document.getElementById("btn-add");
-  const qrImage = document.getElementById("qr-image");
-  const qrPlaceholder = document.getElementById("qr-placeholder");
-  const btnDownloadPng = document.getElementById("btn-download-png");
-  const btnPrint = document.getElementById("btn-print");
-  const btnExportJson = document.getElementById("btn-export-json");
-  const historyTbody = document.getElementById("history-tbody");
-  const printQr = document.getElementById("print-qr");
+  var STORAGE_LANG = "lfqr_lang";
+  var STORAGE_THEME = "lfqr_theme";
 
-  const btnAddDefaultLabel = btnAdd.textContent.trim();
+  var I18N = {
+    RU: {
+      "doc.title": "Lost & Found — генератор QR",
+      "app.title": "Lost & Found — генератор QR",
+      "app.subtitle":
+        "Безопасный QR: в коде только название предмета и телефон. Полные данные хранятся в истории.",
+      "settings.theme": "Тема",
+      "settings.language": "Язык",
+      "settings.aria": "Настройки отображения",
+      "theme.system": "Системная",
+      "theme.dark": "Темная",
+      "theme.light": "Светлая",
+      "card.formTitle": "Данные о вещи",
+      "card.previewTitle": "Предпросмотр и история",
+      "field.itemName": "Название предмета",
+      "field.fullName": "ФИО",
+      "field.address": "Адрес",
+      "field.phone": "Телефон",
+      "ph.itemName": "Название предмета",
+      "ph.fullName": "ФИО",
+      "ph.address": "Адрес",
+      "ph.phone": "Телефон",
+      "btn.generate": "Сгенерировать QR-код",
+      "btn.exportJson": "Экспорт истории в JSON",
+      "btn.savePng": "Сохранить QR как PNG",
+      "btn.print": "Печать QR-кода",
+      "btn.generated": "Готово!",
+      "preview.srTitle": "Предпросмотр QR-кода",
+      "qr.placeholder": "Предпросмотр QR",
+      "history.title": "История",
+      "th.id": "ID",
+      "th.item": "Предмет",
+      "th.name": "Имя",
+      "th.phone": "Телефон",
+      "th.date": "Дата",
+      "th.action": "Действие",
+      "tbl.delete": "Удалить",
+      "alt.qr": "Сгенерированный QR-код",
+      "alt.qrPrint": "QR-код для печати",
+      "msg.recordSaved": "Запись сохранена, QR обновлён.",
+      "msg.requestFailed": "Ошибка запроса.",
+      "msg.networkError": "Ошибка сети.",
+      "alert.noQr": "Сначала сгенерируйте QR-код.",
+      "alert.deleteFailed": "Не удалось удалить.",
+      "alert.printPrepFailed": "Не удалось подготовить изображение для печати.",
+      "confirm.delete": "Удалить эту запись?",
+    },
+    EN: {
+      "doc.title": "Lost & Found QR Generator",
+      "app.title": "Lost & Found QR Generator",
+      "app.subtitle":
+        "Secure QR: only item name and phone appear on the code. Full details are stored in your history.",
+      "settings.theme": "Theme",
+      "settings.language": "Language",
+      "settings.aria": "Display settings",
+      "theme.system": "System",
+      "theme.dark": "Dark",
+      "theme.light": "Light",
+      "card.formTitle": "Item details",
+      "card.previewTitle": "Preview & history",
+      "field.itemName": "Item name",
+      "field.fullName": "Full name",
+      "field.address": "Address",
+      "field.phone": "Phone",
+      "ph.itemName": "Item name",
+      "ph.fullName": "Full name",
+      "ph.address": "Address",
+      "ph.phone": "Phone",
+      "btn.generate": "Generate QR Code",
+      "btn.exportJson": "Export History to JSON",
+      "btn.savePng": "Save QR to PNG",
+      "btn.print": "Print QR Code",
+      "btn.generated": "Generated!",
+      "preview.srTitle": "QR code preview",
+      "qr.placeholder": "QR preview",
+      "history.title": "History",
+      "th.id": "ID",
+      "th.item": "Item",
+      "th.name": "Name",
+      "th.phone": "Phone",
+      "th.date": "Date",
+      "th.action": "Action",
+      "tbl.delete": "Delete",
+      "alt.qr": "Generated QR code",
+      "alt.qrPrint": "QR code for printing",
+      "msg.recordSaved": "Record saved and QR updated.",
+      "msg.requestFailed": "Request failed.",
+      "msg.networkError": "Network error.",
+      "alert.noQr": "Generate a QR code first.",
+      "alert.deleteFailed": "Delete failed.",
+      "alert.printPrepFailed": "Could not prepare the image for printing.",
+      "confirm.delete": "Delete this record?",
+    },
+  };
 
-  let currentQrBase64 = null;
-  let currentItemNameForFile = "item";
-  let generateFlashTimer = null;
+  var form = document.getElementById("record-form");
+  var itemNameInput = document.getElementById("item_name");
+  var fullNameInput = document.getElementById("full_name");
+  var addressInput = document.getElementById("address");
+  var phoneInput = document.getElementById("phone");
+  var formMessage = document.getElementById("form-message");
+  var btnAdd = document.getElementById("btn-add");
+  var qrImage = document.getElementById("qr-image");
+  var qrPlaceholder = document.getElementById("qr-placeholder");
+  var btnDownloadPng = document.getElementById("btn-download-png");
+  var btnPrint = document.getElementById("btn-print");
+  var btnExportJson = document.getElementById("btn-export-json");
+  var historyTbody = document.getElementById("history-tbody");
+  var printQr = document.getElementById("print-qr");
+  var themeSelect = document.getElementById("theme-select");
+  var langSelect = document.getElementById("lang-select");
+  var settingsBar = document.querySelector(".settings-bar");
+
+  var currentLang = "RU";
+  var btnAddDefaultLabel = "";
+  var currentQrBase64 = null;
+  var currentItemNameForFile = "item";
+  var generateFlashTimer = null;
+  var systemThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
+
+  function getStoredLang() {
+    var v = window.localStorage.getItem(STORAGE_LANG);
+    if (v === "en" || v === "EN") {
+      return "EN";
+    }
+    if (v === "ru" || v === "RU") {
+      return "RU";
+    }
+    return "RU";
+  }
+
+  function setStoredLang(lang) {
+    window.localStorage.setItem(STORAGE_LANG, lang === "EN" ? "en" : "ru");
+  }
+
+  function getStoredTheme() {
+    var v = window.localStorage.getItem(STORAGE_THEME);
+    if (v === "dark" || v === "light" || v === "system") {
+      return v;
+    }
+    return "system";
+  }
+
+  function setStoredTheme(theme) {
+    window.localStorage.setItem(STORAGE_THEME, theme);
+  }
+
+  function resolveTheme(pref) {
+    if (pref === "dark") {
+      return "dark";
+    }
+    if (pref === "light") {
+      return "light";
+    }
+    return systemThemeMq.matches ? "dark" : "light";
+  }
+
+  function applyResolvedTheme() {
+    var resolved = resolveTheme(getStoredTheme());
+    document.documentElement.setAttribute("data-theme", resolved);
+  }
+
+  function t(key) {
+    var pack = I18N[currentLang] || I18N.RU;
+    if (Object.prototype.hasOwnProperty.call(pack, key)) {
+      return pack[key];
+    }
+    return I18N.RU[key] || key;
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = currentLang === "RU" ? "ru" : "en";
+
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (!key) {
+        return;
+      }
+      var val = t(key);
+      if (el.tagName === "TITLE") {
+        document.title = val;
+      } else {
+        el.textContent = val;
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-placeholder");
+      if (key) {
+        el.setAttribute("placeholder", t(key));
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-alt]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-alt");
+      if (key) {
+        el.setAttribute("alt", t(key));
+      }
+    });
+
+    if (settingsBar) {
+      settingsBar.setAttribute("aria-label", t("settings.aria"));
+    }
+
+    refreshGenerateButtonLabel();
+  }
+
+  function refreshGenerateButtonLabel() {
+    btnAddDefaultLabel = t("btn.generate");
+    if (generateFlashTimer === null) {
+      btnAdd.textContent = btnAddDefaultLabel;
+    }
+  }
 
   function setFormMessage(text, kind) {
     formMessage.textContent = text || "";
@@ -42,7 +238,7 @@
       window.clearTimeout(generateFlashTimer);
       generateFlashTimer = null;
     }
-    btnAdd.textContent = "Generated!";
+    btnAdd.textContent = t("btn.generated");
     generateFlashTimer = window.setTimeout(function () {
       btnAdd.textContent = btnAddDefaultLabel;
       generateFlashTimer = null;
@@ -53,7 +249,7 @@
     if (!name || !String(name).trim()) {
       return "item";
     }
-    let s = String(name).trim();
+    var s = String(name).trim();
     s = s.replace(/[<>:"/\\|?*]/g, "_").replace(/^[\s.]+|[\s.]+$/g, "");
     return s || "item";
   }
@@ -61,7 +257,7 @@
   function showQrFromBase64(b64, itemName) {
     currentQrBase64 = b64;
     currentItemNameForFile = sanitizeFilename(itemName || "item");
-    const dataUrl = "data:image/png;base64," + b64;
+    var dataUrl = "data:image/png;base64," + b64;
     qrImage.src = dataUrl;
     qrImage.hidden = false;
     qrPlaceholder.hidden = true;
@@ -82,8 +278,8 @@
 
   async function loadHistory() {
     try {
-      const res = await fetch("/api/history", { method: "GET" });
-      const data = await res.json();
+      var res = await fetch("/api/history", { method: "GET" });
+      var data = await res.json();
       if (!data.success) {
         return;
       }
@@ -95,9 +291,10 @@
 
   function renderTable(records) {
     historyTbody.textContent = "";
+    var delLabel = t("tbl.delete");
 
     records.forEach(function (rec) {
-      const tr = document.createElement("tr");
+      var tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" +
         escapeHtml(String(rec.id)) +
@@ -116,7 +313,9 @@
         "</td>" +
         '<td><button type="button" class="btn btn-danger" data-id="' +
         escapeHtml(String(rec.id)) +
-        '">Delete</button></td>';
+        '">' +
+        escapeHtml(delLabel) +
+        "</button></td>";
       historyTbody.appendChild(tr);
     });
 
@@ -134,28 +333,28 @@
   }
 
   async function onDeleteClick(ev) {
-    const id = ev.currentTarget.getAttribute("data-id");
+    var id = ev.currentTarget.getAttribute("data-id");
     if (!id) {
       return;
     }
-    if (!window.confirm("Delete this record?")) {
+    if (!window.confirm(t("confirm.delete"))) {
       return;
     }
     try {
-      const res = await fetch("/api/delete/" + encodeURIComponent(id), {
+      var res = await fetch("/api/delete/" + encodeURIComponent(id), {
         method: "DELETE",
       });
-      const data = await res.json().catch(function () {
+      var data = await res.json().catch(function () {
         return {};
       });
       if (!res.ok || !data.success) {
-        window.alert("Delete failed.");
+        window.alert(t("alert.deleteFailed"));
         return;
       }
       await loadHistory();
     } catch (err) {
       console.error(err);
-      window.alert("Delete failed.");
+      window.alert(t("alert.deleteFailed"));
     }
   }
 
@@ -163,7 +362,7 @@
     ev.preventDefault();
     setFormMessage("");
 
-    const payload = {
+    var payload = {
       item_name: itemNameInput.value.trim(),
       full_name: fullNameInput.value.trim(),
       address: addressInput.value.trim(),
@@ -171,31 +370,31 @@
     };
 
     btnAdd.disabled = true;
-    let addSucceeded = false;
+    var addSucceeded = false;
 
     try {
-      const res = await fetch("/api/add", {
+      var res = await fetch("/api/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(function () {
+      var data = await res.json().catch(function () {
         return {};
       });
 
       if (!res.ok || !data.success) {
-        setFormMessage(data.error || "Request failed.", "error");
+        setFormMessage(data.error || t("msg.requestFailed"), "error");
         return;
       }
 
       addSucceeded = true;
       showQrFromBase64(data.qr_base64, data.item_name || payload.item_name);
-      setFormMessage("Record saved and QR updated.", "ok");
+      setFormMessage(t("msg.recordSaved"), "ok");
       clearFormInputs();
       await loadHistory();
     } catch (err) {
       console.error(err);
-      setFormMessage("Network error.", "error");
+      setFormMessage(t("msg.networkError"), "error");
     } finally {
       btnAdd.disabled = false;
       if (addSucceeded) {
@@ -206,10 +405,10 @@
 
   btnDownloadPng.addEventListener("click", function () {
     if (!currentQrBase64) {
-      window.alert("Generate a QR code first.");
+      window.alert(t("alert.noQr"));
       return;
     }
-    const link = document.createElement("a");
+    var link = document.createElement("a");
     link.href = "data:image/png;base64," + currentQrBase64;
     link.download = currentItemNameForFile + "_QR.png";
     document.body.appendChild(link);
@@ -219,10 +418,10 @@
 
   btnPrint.addEventListener("click", function () {
     if (!currentQrBase64) {
-      window.alert("Generate a QR code first.");
+      window.alert(t("alert.noQr"));
       return;
     }
-    const url = "data:image/png;base64," + currentQrBase64;
+    var url = "data:image/png;base64," + currentQrBase64;
     printQr.onload = function () {
       printQr.onload = null;
       printQr.onerror = null;
@@ -231,7 +430,7 @@
     printQr.onerror = function () {
       printQr.onerror = null;
       printQr.onload = null;
-      window.alert("Could not prepare the image for printing.");
+      window.alert(t("alert.printPrepFailed"));
     };
     printQr.src = url;
   });
@@ -239,6 +438,41 @@
   btnExportJson.addEventListener("click", function () {
     window.location.href = "/api/export";
   });
+
+  function onSystemThemeChange() {
+    if (getStoredTheme() === "system") {
+      applyResolvedTheme();
+    }
+  }
+
+  function initThemeControls() {
+    applyResolvedTheme();
+    themeSelect.addEventListener("change", function () {
+      setStoredTheme(themeSelect.value);
+      applyResolvedTheme();
+    });
+    if (typeof systemThemeMq.addEventListener === "function") {
+      systemThemeMq.addEventListener("change", onSystemThemeChange);
+    } else if (typeof systemThemeMq.addListener === "function") {
+      systemThemeMq.addListener(onSystemThemeChange);
+    }
+  }
+
+  function initLangControls() {
+    langSelect.addEventListener("change", function () {
+      currentLang = langSelect.value === "en" ? "EN" : "RU";
+      setStoredLang(currentLang);
+      applyI18n();
+      loadHistory();
+    });
+  }
+
+  currentLang = getStoredLang();
+  themeSelect.value = getStoredTheme();
+  langSelect.value = currentLang === "RU" ? "ru" : "en";
+  applyI18n();
+  initThemeControls();
+  initLangControls();
 
   clearQrDisplay();
   loadHistory();
